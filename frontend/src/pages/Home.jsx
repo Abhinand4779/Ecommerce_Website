@@ -1,24 +1,18 @@
 import Layout from '../components/Layout';
-import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Shield, Truck, Gift, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 
-const heroImages = [
-    'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=2070&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=2070&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=2070&auto=format&fit=crop'
-];
-
 export default function Home() {
     const [categories, setCategories] = useState([]);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [featuredProducts, setFeaturedProducts] = useState([]);
-    const [currentProductIndex, setCurrentProductIndex] = useState(0);
+    const [sliders, setSliders] = useState([]);
+    const [currentSliderIndex, setCurrentSliderIndex] = useState(0);
+    const [homeGroups, setHomeGroups] = useState([]);
     const [visibleCards, setVisibleCards] = useState(4);
 
-    // Update visible cards on resize
+    // Update visible cards on resize for product carousels
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth < 640) setVisibleCards(1);
@@ -32,283 +26,149 @@ export default function Home() {
 
     useEffect(() => {
         // Fetch categories
-        api.get('/categories/')
-            .then(response => {
-                const data = response.data.results || response.data;
-                setCategories(Array.isArray(data) ? data : []);
-            })
-            .catch(error => {
-                console.error("Error fetching categories:", error);
-            });
+        api.get('/categories/').then(res => setCategories(res.data.results || res.data)).catch(console.error);
 
-        // Fetch featured products
-        api.get('/products/')
-            .then(response => {
-                const data = response.data.results || response.data;
-                if (Array.isArray(data)) {
-                    setFeaturedProducts(data.slice(0, 8)); // Get first 8 products
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching products:", error);
-            });
+        // Fetch sliders
+        api.get('/sliders/').then(res => {
+            const data = (res.data.results || res.data).filter(s => s.is_active);
+            setSliders(data);
+        }).catch(console.error);
+
+        // Fetch Home Groups
+        api.get('/home-groups/').then(res => {
+            const data = (res.data.results || res.data).filter(g => g.is_active);
+            setHomeGroups(data);
+        }).catch(console.error);
     }, []);
 
-    // Carousel auto-play
+    // Slider auto-play
     useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentImageIndex((prevIndex) =>
-                prevIndex === heroImages.length - 1 ? 0 : prevIndex + 1
-            );
-        }, 5000); // Change image every 5 seconds
-
-        return () => clearInterval(interval);
-    }, []);
-
-    // Product carousel auto-play
-    useEffect(() => {
-        if (featuredProducts.length > 0) {
+        if (sliders.length > 1) {
             const interval = setInterval(() => {
-                setCurrentProductIndex((prevIndex) =>
-                    prevIndex >= featuredProducts.length - visibleCards ? 0 : prevIndex + 1
-                );
-            }, 3000); // Change every 3 seconds
-
+                setCurrentSliderIndex(prev => (prev + 1) % sliders.length);
+            }, 6000);
             return () => clearInterval(interval);
         }
-    }, [featuredProducts, visibleCards]);
+    }, [sliders]);
 
     return (
         <Layout>
-            {/* Hero Section with Carousel */}
-            <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 z-0">
-                    {/* Carousel Images */}
-                    {heroImages.map((image, index) => (
-                        <div
-                            key={index}
-                            className={`absolute inset-0 transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                                }`}
-                        >
-                            <img
-                                src={image}
-                                alt={`Hero ${index + 1}`}
-                                className="w-full h-full object-cover"
-                            />
+            {/* Dynamic Hero Sliders */}
+            <section className="relative h-[90vh] flex items-center justify-center overflow-hidden bg-black text-white">
+                <AnimatePresence mode="wait">
+                    {sliders.length > 0 ? sliders.map((slider, index) => (
+                        index === currentSliderIndex && (
+                            <motion.div
+                                key={slider.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 1 }}
+                                className="absolute inset-0"
+                            >
+                                <img src={slider.image} alt={slider.title} className="w-full h-full object-cover opacity-60 scale-110" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                                    <motion.h4 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-primary font-bold uppercase tracking-[0.5em] text-sm mb-4">{slider.sub_title}</motion.h4>
+                                    <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }} className="text-5xl md:text-8xl font-serif font-black mb-8 max-w-5xl leading-tight">{slider.title}</motion.h1>
+                                    <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.9 }}>
+                                        <Link to={slider.link} className="bg-gradient-primary text-dark px-10 py-4 rounded-full font-black uppercase tracking-widest text-sm hover:glow-gold transition-all flex items-center gap-3">
+                                            Discover Now <ArrowRight className="w-5 h-5" />
+                                        </Link>
+                                    </motion.div>
+                                </div>
+                            </motion.div>
+                        )
+                    )) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <h1 className="text-4xl font-serif italic text-white/20">Loading Excellence...</h1>
                         </div>
-                    ))}
-                    <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-purple-900/40 to-black/70" />
-                </div>
+                    )}
+                </AnimatePresence>
 
-                {/* Carousel Navigation Dots */}
-                <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3">
-                    {heroImages.map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={() => setCurrentImageIndex(index)}
-                            className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentImageIndex
-                                ? 'bg-primary w-8 glow-gold'
-                                : 'bg-white/50 hover:bg-white/80'
-                                }`}
-                            aria-label={`Go to slide ${index + 1}`}
-                        />
-                    ))}
-                </div>
-
-                <div className="relative z-10 text-center text-white px-4 max-w-5xl mx-auto">
-                    <motion.h1
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        className="text-6xl md:text-8xl font-serif font-bold mb-6 leading-tight"
-                    >
-                        Timeless <span className="gradient-text">Elegance</span>
-                    </motion.h1>
-                    <motion.p
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                        className="text-xl md:text-2xl mb-10 max-w-3xl mx-auto font-light leading-relaxed"
-                    >
-                        Discover our exclusive collection of handcrafted jewelry designed for the modern muse.
-                    </motion.p>
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.4 }}
-                        className="animate-float-slow"
-                    >
-                        <Link
-                            to="/shop"
-                            className="inline-flex items-center px-10 py-4 bg-gradient-primary text-dark font-bold hover:glow-gold-strong transition-all duration-300 uppercase tracking-widest rounded-full hover:scale-105 shadow-xl hover-wiggle"
-                        >
-                            Shop Collection <ArrowRight className="ml-2 h-5 w-5" />
-                        </Link>
-                    </motion.div>
-                </div>
+                {/* Navigation Dots */}
+                {sliders.length > 1 && (
+                    <div className="absolute bottom-10 flex gap-3 z-20">
+                        {sliders.map((_, i) => (
+                            <button key={i} onClick={() => setCurrentSliderIndex(i)} className={`w-2.5 h-2.5 rounded-full transition-all ${i === currentSliderIndex ? 'bg-primary w-8' : 'bg-white/30'}`} />
+                        ))}
+                    </div>
+                )}
             </section>
 
-            {/* Featured Categories */}
-            <section className="py-24 px-4 max-w-7xl mx-auto">
-                <motion.h2
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="text-4xl md:text-5xl font-serif text-center mb-4"
-                >
-                    Shop by <span className="gradient-text">Category</span>
-                </motion.h2>
-                <p className="text-center text-gray-500 mb-16 max-w-2xl mx-auto">
-                    Explore our curated collections of exquisite jewelry pieces
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {categories.length > 0 ? (
-                        categories.map((cat, index) => (
-                            <motion.div
-                                key={cat.id}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                whileInView={{ opacity: 1, scale: 1 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.15, type: "spring", stiffness: 100 }}
-                                whileHover={{ y: -10 }}
-                            >
-                                <Link to={`/shop?category=${cat.id}`} className="group relative h-[450px] overflow-hidden cursor-pointer block rounded-2xl shadow-lg hover-lift">
-                                    <img
-                                        src={cat.image ? cat.image : 'https://placehold.co/600x400'}
-                                        alt={cat.name}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:rotate-2"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent group-hover:from-black/90 transition-all duration-500" />
-                                    <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
-                                    <div className="absolute bottom-0 left-0 right-0 p-8 transform transition-transform duration-500 group-hover:translate-y-0">
-                                        <h3 className="text-4xl text-white font-serif mb-2 group-hover:gradient-text transition-all duration-300 animate-slide-in-up">{cat.name}</h3>
-                                        <p className="text-white/80 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 animate-slide-in-up">
-                                            Explore Collection →
-                                        </p>
+            {/* Dynamic Home Groups (Collections) */}
+            {homeGroups.map((group, gIdx) => (
+                <section key={group.id} className={`py-24 px-4 ${gIdx % 2 === 0 ? 'bg-white' : 'bg-[#F9FAFB]'}`}>
+                    <div className="max-w-7xl mx-auto">
+                        <div className="flex justify-between items-end mb-16">
+                            <div>
+                                <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-800 mb-4">{group.title}</h2>
+                                <p className="text-slate-500 max-w-xl">{group.subtitle}</p>
+                            </div>
+                            <Link to="/shop" className="hidden md:flex items-center text-primary font-bold tracking-widest uppercase text-sm group">
+                                View Full Collection <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                            </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {group.products.slice(0, 4).map((product, pIdx) => (
+                                <Link key={product.id} to={`/product/${product.id}`} className="group">
+                                    <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
+                                        <div className="aspect-[4/5] relative overflow-hidden">
+                                            <img src={product.images?.[0]?.image || 'https://placehold.co/600x800'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
+                                            {product.discount_price && <span className="absolute top-6 left-6 bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Special Offer</span>}
+                                        </div>
+                                        <div className="p-8">
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">{product.category?.name}</p>
+                                            <h3 className="text-xl font-serif font-bold text-slate-800 mb-4 group-hover:text-primary transition-colors">{product.name}</h3>
+                                            <div className="flex items-center gap-3">
+                                                {product.discount_price ? (
+                                                    <>
+                                                        <span className="text-2xl font-black text-rose-500">₹{product.discount_price}</span>
+                                                        <span className="text-slate-300 line-through text-lg italic">₹{product.price}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-2xl font-black text-[#1E293B]">₹{product.price}</span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </Link>
-                            </motion.div>
-                        ))
-                    ) : (
-                        <p className="text-center col-span-3 text-gray-500">Loading categories...</p>
-                    )}
-                </div>
-            </section>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            ))}
 
-            {/* Featured Products Carousel - Colorful Section */}
-            <section className="py-24 px-4 bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 relative overflow-hidden">
-                {/* Decorative Background Elements */}
-                <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-pink-300/30 to-purple-300/30 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-300/30 to-cyan-300/30 rounded-full blur-3xl"></div>
-
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-5xl md:text-6xl font-serif font-bold mb-4">
-                            Featured <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">Products</span>
-                        </h2>
-                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                            Discover our handpicked selection of stunning jewelry pieces
-                        </p>
-                    </motion.div>
-
-                    {featuredProducts.length > 0 ? (
-                        <div className="relative">
-                            {/* Products Carousel */}
-                            <div className="overflow-hidden">
-                                <motion.div
-                                    className="flex gap-6"
-                                    animate={{ x: `-${currentProductIndex * (100 / visibleCards)}%` }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                >
-                                    {featuredProducts.map((product, index) => (
-                                        <motion.div
-                                            key={product.id}
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            whileInView={{ opacity: 1, scale: 1 }}
-                                            viewport={{ once: true }}
-                                            transition={{ delay: index * 0.1 }}
-                                            className={`group flex-shrink-0`}
-                                            style={{ minWidth: `calc(${100 / visibleCards}% - ${(24 * (visibleCards - 1)) / visibleCards}px)` }}
-                                        >
-                                            <Link to={`/product/${product.id}`} className="block">
-                                                <div className="bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                                                    <div className="relative h-80 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
-                                                        <img
-                                                            src={product.images && product.images.length > 0 ? product.images[0].image : 'https://placehold.co/400'}
-                                                            alt={product.name}
-                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                        />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                                        {product.discount_price && (
-                                                            <span className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg animate-bounce">
-                                                                SALE
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="p-6">
-                                                        <p className="text-xs text-purple-600 font-semibold mb-2 uppercase tracking-wider">{product.category?.name}</p>
-                                                        <h3 className="font-serif text-xl mb-3 text-gray-900 group-hover:bg-gradient-to-r group-hover:from-pink-500 group-hover:to-purple-500 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                                                            {product.name}
-                                                        </h3>
-                                                        <div className="flex items-center space-x-2">
-                                                            {product.discount_price ? (
-                                                                <>
-                                                                    <span className="text-gray-400 line-through text-sm">${product.price}</span>
-                                                                    <span className="bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent font-bold text-2xl">
-                                                                        ${product.discount_price}
-                                                                    </span>
-                                                                </>
-                                                            ) : (
-                                                                <span className="bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent font-bold text-2xl">
-                                                                    ${product.price}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </Link>
-                                        </motion.div>
-                                    ))}
-                                </motion.div>
+            {/* Heritage & Values Story */}
+            <section className="py-24 bg-dark text-white overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -mr-64 -mt-64" />
+                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+                    <div className="relative">
+                        <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=1000" className="rounded-[3rem] shadow-2xl relative z-10" alt="Excellence" />
+                        <div className="absolute -bottom-10 -right-10 bg-primary w-40 h-40 rounded-[2rem] flex flex-col items-center justify-center text-dark p-6 shadow-2xl z-20">
+                            <span className="text-4xl font-black">25+</span>
+                            <span className="text-[10px] font-bold uppercase text-center leading-tight mt-2">Years of Trusted Brilliance</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="text-primary font-bold uppercase tracking-[0.4em] text-sm mb-6">Unrivaled Heritage</h4>
+                        <h2 className="text-5xl md:text-6xl font-serif font-black mb-10 leading-tight">Mastery in every <span className="gradient-text">Detail</span></h2>
+                        <p className="text-slate-400 text-lg leading-relaxed mb-12">Established with a vision to redefine luxury jewelry, our atelier combines heritage techniques with modern precision. Every diamond is ethically sourced and every gold setting is handcrafted by master artisans with decades of experience.</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12">
+                            <div className="flex items-start gap-5">
+                                <div className="p-3 bg-white/5 rounded-2xl"><Shield className="text-primary" /></div>
+                                <div><h5 className="font-bold mb-1">GIA Certified</h5><p className="text-slate-500 text-sm">Authenticity in every stone.</p></div>
                             </div>
-
-                            {/* Navigation Dots */}
-                            <div className="flex justify-center mt-12 space-x-2">
-                                {[...Array(Math.max(1, featuredProducts.length - visibleCards + 1))].map((_, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentProductIndex(index)}
-                                        className={`h-3 rounded-full transition-all duration-300 ${index === currentProductIndex
-                                            ? 'w-12 bg-gradient-to-r from-pink-500 to-purple-500'
-                                            : 'w-3 bg-gray-300 hover:bg-gray-400'
-                                            }`}
-                                        aria-label={`Go to product set ${index + 1}`}
-                                    />
-                                ))}
-                            </div>
-
-                            {/* View All Button */}
-                            <div className="text-center mt-12">
-                                <Link
-                                    to="/shop"
-                                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white font-bold rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 uppercase tracking-wider"
-                                >
-                                    View All Products <ArrowRight className="ml-2 h-5 w-5" />
-                                </Link>
+                            <div className="flex items-start gap-5">
+                                <div className="p-3 bg-white/5 rounded-2xl"><Truck className="text-primary" /></div>
+                                <div><h5 className="font-bold mb-1">Global Shipping</h5><p className="text-slate-500 text-sm">Secure, insured transit.</p></div>
                             </div>
                         </div>
-                    ) : (
-                        <p className="text-center text-gray-500">Loading products...</p>
-                    )}
+                        <button className="border-b-2 border-primary text-primary font-black uppercase tracking-widest text-sm pb-2 hover:translate-x-4 transition-all">Learn more about our craft →</button>
+                    </div>
                 </div>
             </section>
-
-            {/* Featured Categories */}
         </Layout>
     );
 }

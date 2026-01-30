@@ -64,7 +64,7 @@ export default function Cart() {
                                         <h3 className="text-xl font-serif font-semibold mb-1">{item.name}</h3>
                                         <p className="text-gray-400 text-sm mb-3 uppercase tracking-wide">{item.category?.name}</p>
                                         <div className="gradient-text font-bold text-xl">
-                                            ${item.discount_price ? item.discount_price : item.price}
+                                            ₹{item.discount_price ? item.discount_price : item.price}
                                         </div>
                                     </div>
 
@@ -105,7 +105,7 @@ export default function Cart() {
                                 <div className="space-y-5 mb-8">
                                     <div className="flex justify-between text-white/80 text-lg">
                                         <span>Subtotal</span>
-                                        <span className="font-semibold">${cartTotal.toFixed(2)}</span>
+                                        <span className="font-semibold">₹{cartTotal.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-white/80 text-lg">
                                         <span>Shipping</span>
@@ -113,7 +113,7 @@ export default function Cart() {
                                     </div>
                                     <div className="border-t border-white/20 pt-5 flex justify-between font-bold text-2xl text-white">
                                         <span>Total</span>
-                                        <span className="gradient-text">${cartTotal.toFixed(2)}</span>
+                                        <span className="gradient-text">₹{cartTotal.toFixed(2)}</span>
                                     </div>
                                 </div>
 

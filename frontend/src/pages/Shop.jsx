@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Shop() {
     const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -19,6 +20,28 @@ export default function Shop() {
 
     const categoryId = searchParams.get('category');
     const searchQuery = searchParams.get('search');
+
+    // Fetch Categories for title lookup
+    useEffect(() => {
+        api.get('/categories/')
+            .then(res => {
+                const data = res.data.results || res.data;
+                const flattenCategories = (cats) => {
+                    let flat = [];
+                    cats.forEach(c => {
+                        flat.push(c);
+                        if (c.children && c.children.length > 0) {
+                            flat = flat.concat(flattenCategories(c.children));
+                        }
+                    });
+                    return flat;
+                };
+                setCategories(flattenCategories(data));
+            })
+            .catch(err => console.error("Error fetching categories", err));
+    }, []);
+
+    const currentCategory = categories.find(c => String(c.id) === categoryId);
 
     useEffect(() => {
         let url = '/products/';
@@ -82,8 +105,21 @@ export default function Shop() {
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex justify-between items-center mb-12">
                         <div>
-                            <h1 className="text-5xl md:text-6xl font-serif mb-2">Our <span className="gradient-text">Collection</span></h1>
-                            <p className="text-gray-500">Discover timeless pieces crafted with excellence</p>
+                            <h1 className="text-5xl md:text-6xl font-serif mb-2">
+                                {currentCategory ? (
+                                    <><span className="gradient-text">{currentCategory.name}</span> Collection</>
+                                ) : searchQuery ? (
+                                    <>Search: <span className="gradient-text">{searchQuery}</span></>
+                                ) : (
+                                    <>Our <span className="gradient-text">Collection</span></>
+                                )}
+                            </h1>
+                            <p className="text-gray-500">
+                                {currentCategory
+                                    ? `Exploring the finest ${currentCategory.name.toLowerCase()} for your elegance`
+                                    : "Discover timeless pieces crafted with excellence"
+                                }
+                            </p>
                         </div>
 
                         <div className="relative">
@@ -160,7 +196,7 @@ export default function Shop() {
                         <div className="flex items-center space-x-2 mb-6 text-sm text-gray-500">
                             <span>Active filters:</span>
                             <span className="bg-white border border-gray-200 px-3 py-1 rounded-full flex items-center">
-                                Price: {priceRange.min || '0'} - {priceRange.max || 'Any'}
+                                Price: ₹{priceRange.min || '0'} - ₹{priceRange.max || 'Any'}
                                 <button onClick={clearFilters} className="ml-2 hover:text-red-500"><X className="h-3 w-3" /></button>
                             </span>
                         </div>
@@ -197,11 +233,11 @@ export default function Shop() {
                                             <div className="flex justify-center items-center space-x-2">
                                                 {product.discount_price ? (
                                                     <>
-                                                        <span className="text-gray-400 line-through text-sm">${product.price}</span>
-                                                        <span className="gradient-text font-bold text-xl">${product.discount_price}</span>
+                                                        <span className="text-gray-400 line-through text-sm">₹{product.price}</span>
+                                                        <span className="gradient-text font-bold text-xl">₹{product.discount_price}</span>
                                                     </>
                                                 ) : (
-                                                    <span className="gradient-text font-bold text-xl">${product.price}</span>
+                                                    <span className="gradient-text font-bold text-xl">₹{product.price}</span>
                                                 )}
                                             </div>
                                         </div>

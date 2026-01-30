@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
-import { Minus, Plus, ShoppingBag, ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Minus, Plus, ShoppingBag, ArrowLeft, Heart, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProductDetail() {
     const { id } = useParams();
@@ -13,12 +13,18 @@ export default function ProductDetail() {
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState(0);
+    const [selectedColor, setSelectedColor] = useState(null);
+    const [selectedSize, setSelectedSize] = useState(null);
+
     const { addToCart } = useCart();
 
     useEffect(() => {
         api.get(`/products/${id}/`)
             .then(res => {
-                setProduct(res.data);
+                const data = res.data;
+                setProduct(data);
+                if (data.colors?.length > 0) setSelectedColor(data.colors[0]);
+                if (data.sizes?.length > 0) setSelectedSize(data.sizes[0]);
                 setLoading(false);
             })
             .catch(err => {
@@ -28,136 +34,147 @@ export default function ProductDetail() {
     }, [id]);
 
     const handleAddToCart = () => {
-        addToCart(product, quantity);
-        // Optional: Add toast notification here
-        alert("Added to cart!");
+        const item = {
+            ...product,
+            selectedColor,
+            selectedSize
+        };
+        addToCart(item, quantity);
+        alert(`${product.name} added to your collection.`);
     };
 
-    if (loading) return <Layout><div className="text-center py-20">Loading...</div></Layout>;
-    if (!product) return <Layout><div className="text-center py-20">Product not found</div></Layout>;
+    if (loading) return <Layout><div className="flex items-center justify-center min-h-screen"><div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div></Layout>;
+    if (!product) return <Layout><div className="text-center py-40 font-serif text-3xl">This masterpiece is currently unavailable.</div></Layout>;
 
     return (
         <Layout>
-            <div className="bg-gradient-to-br from-white via-gray-50 to-white min-h-screen py-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center text-gray-600 mb-10 hover:text-primary transition-all duration-200 font-medium group"
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Shop
-                    </button>
+            <div className="bg-white min-h-screen pt-24 pb-20">
+                <div className="max-w-7xl mx-auto px-4 md:px-8">
+                    {/* Breadcrumbs */}
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-12">
+                        <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+                        <span>/</span>
+                        <Link to="/shop" className="hover:text-primary transition-colors">Collection</Link>
+                        <span>/</span>
+                        <span className="text-slate-800">{product.name}</span>
+                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-                        {/* Image Gallery */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
+                        {/* Gallery Section */}
                         <div className="space-y-6">
-                            <div className="relative group">
-                                <motion.div
-                                    key={selectedImage}
-                                    initial={{ opacity: 0, scale: 0.98 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.4 }}
-                                    className="aspect-square w-full overflow-hidden rounded-[2.5rem] bg-gray-100 shadow-2xl border-8 border-white"
-                                >
-                                    <img
-                                        src={product.images && product.images.length > 0 ? product.images[selectedImage].image : 'https://placehold.co/800'}
-                                        alt={product.name}
-                                        className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                            <div className="aspect-[4/5] bg-slate-50 rounded-[3rem] overflow-hidden relative group border border-slate-100 shadow-sm">
+                                <AnimatePresence mode="wait">
+                                    <motion.img
+                                        key={selectedImage}
+                                        initial={{ opacity: 0, scale: 1.1 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        src={product.images?.[selectedImage]?.image || 'https://placehold.co/800x1000'}
+                                        className="w-full h-full object-cover"
                                     />
-                                </motion.div>
-
-                                {/* Image Navigation Overlay (Mobile) */}
-                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2 md:hidden">
-                                    {product.images?.map((_, idx) => (
-                                        <div
-                                            key={idx}
-                                            className={`h-1.5 rounded-full transition-all duration-300 ${selectedImage === idx ? 'w-6 bg-white shadow-lg' : 'w-1.5 bg-white/50'}`}
-                                        />
-                                    ))}
+                                </AnimatePresence>
+                                <div className="absolute top-8 right-8 flex flex-col gap-4">
+                                    <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all text-slate-400 hover:text-rose-500"><Heart className="w-5 h-5" /></button>
+                                    <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all text-slate-400 hover:text-primary"><Share2 className="w-5 h-5" /></button>
                                 </div>
                             </div>
 
-                            <div className="flex space-x-4 overflow-x-auto pb-4 no-scrollbar">
-                                {product.images && product.images.length > 0 && product.images.map((img, idx) => (
+                            <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                                {product.images?.map((img, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => setSelectedImage(idx)}
-                                        onMouseEnter={() => setSelectedImage(idx)}
-                                        className={`flex-shrink-0 w-24 aspect-square overflow-hidden rounded-2xl transition-all duration-300 border-2 ${selectedImage === idx
-                                            ? 'border-primary shadow-xl scale-105'
-                                            : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
-                                            }`}
+                                        className={`w-28 h-28 flex-shrink-0 rounded-3xl overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-primary p-1' : 'border-transparent opacity-60 hover:opacity-100'}`}
                                     >
-                                        <img src={img.image} alt="" className="w-full h-full object-cover" />
+                                        <img src={img.image} className="w-full h-full object-cover rounded-[1.2rem]" alt="" />
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Product Info */}
+                        {/* Product Information */}
                         <div className="flex flex-col">
-                            <p className="text-sm text-gray-400 uppercase tracking-widest mb-3 font-medium">{product.category?.name}</p>
-                            <h1 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-6 leading-tight">{product.name}</h1>
-                            <div className="flex items-end space-x-4 mb-8">
+                            <h4 className="text-primary font-bold uppercase tracking-[0.4em] text-xs mb-4">{product.category?.name}</h4>
+                            <h1 className="text-5xl md:text-6xl font-serif font-black text-slate-900 mb-8 leading-tight">{product.name}</h1>
+
+                            <div className="flex items-center gap-6 mb-10">
                                 {product.discount_price ? (
                                     <>
-                                        <p className="text-4xl gradient-text font-bold">${product.discount_price}</p>
-                                        <p className="text-2xl text-gray-400 line-through mb-1">${product.price}</p>
-                                        <span className="bg-gradient-accent text-white text-xs font-bold px-3 py-1 rounded-full mb-2">SAVE ${(product.price - product.discount_price).toFixed(2)}</span>
+                                        <span className="text-4xl font-black text-slate-900">₹{product.discount_price}</span>
+                                        <span className="text-2xl text-slate-300 line-through italic">₹{product.price}</span>
+                                        <span className="bg-rose-50 text-rose-500 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-rose-100">Limited Offer</span>
                                     </>
                                 ) : (
-                                    <p className="text-4xl gradient-text font-bold">${product.price}</p>
+                                    <span className="text-4xl font-black text-slate-900">₹{product.price}</span>
                                 )}
                             </div>
 
-                            <div className="prose prose-lg text-gray-600 mb-10 leading-relaxed">
-                                <p>{product.description}</p>
-                            </div>
+                            <p className="text-slate-500 text-lg leading-relaxed mb-12 border-l-4 border-slate-100 pl-8">{product.description}</p>
 
-                            <div className="border-t border-b border-gray-200 py-8 mb-10">
-                                <div className="flex items-center space-x-6">
-                                    <div className="flex items-center border-2 border-gray-300 rounded-xl overflow-hidden">
-                                        <button
-                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                            className="p-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-all"
-                                        >
-                                            <Minus className="h-5 w-5" />
-                                        </button>
-                                        <span className="w-16 text-center font-bold text-lg">{quantity}</span>
-                                        <button
-                                            onClick={() => setQuantity(quantity + 1)}
-                                            className="p-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-all"
-                                        >
-                                            <Plus className="h-5 w-5" />
-                                        </button>
+                            {/* Options: Color & Size */}
+                            <div className="space-y-10 mb-12">
+                                {product.colors?.length > 0 && (
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4 block">Select Finish / Color</label>
+                                        <div className="flex flex-wrap gap-3">
+                                            {product.colors.map(color => (
+                                                <button
+                                                    key={color.id}
+                                                    onClick={() => setSelectedColor(color)}
+                                                    className={`group p-1 rounded-full border-2 transition-all ${selectedColor?.id === color.id ? 'border-primary' : 'border-transparent'}`}
+                                                >
+                                                    <div className="w-8 h-8 rounded-full shadow-inner" style={{ backgroundColor: color.hex_code }} title={color.name} />
+                                                </button>
+                                            ))}
+                                            <span className="ml-2 flex items-center text-xs font-bold text-slate-400">{selectedColor?.name}</span>
+                                        </div>
                                     </div>
-                                    <button
-                                        onClick={handleAddToCart}
-                                        className="flex-1 bg-gradient-primary text-dark px-10 py-4 rounded-full hover:glow-gold-strong transition-all duration-300 flex items-center justify-center font-bold uppercase tracking-wider text-lg shadow-xl hover:scale-105 hover-wiggle"
-                                    >
-                                        <ShoppingBag className="mr-3 h-6 w-6" /> Add to Cart
-                                    </button>
-                                </div>
+                                )}
+
+                                {product.sizes?.length > 0 && (
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4 block">Select Size / Fit</label>
+                                        <div className="flex flex-wrap gap-3">
+                                            {product.sizes.map(size => (
+                                                <button
+                                                    key={size.id}
+                                                    onClick={() => setSelectedSize(size)}
+                                                    className={`px-6 py-3 rounded-2xl border-2 text-xs font-bold transition-all ${selectedSize?.id === size.id ? 'border-primary bg-primary/5 text-slate-900' : 'border-slate-100 text-slate-400 hover:border-slate-300'}`}
+                                                >
+                                                    {size.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
-                                className="space-y-4 text-sm text-gray-600 bg-gray-50 p-6 rounded-2xl"
-                            >
-                                <div className="flex items-center space-x-3 hover:translate-x-2 transition-transform duration-200">
-                                    <span className="text-primary text-xl animate-bounce">✓</span>
-                                    <p>Free shipping on all orders over $100</p>
+                            {/* Purchase Section */}
+                            <div className="flex flex-col sm:flex-row gap-6">
+                                <div className="flex items-center h-16 bg-slate-50 rounded-2xl px-2 border border-slate-100">
+                                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-12 h-12 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"><Minus className="w-4 h-4" /></button>
+                                    <span className="w-12 text-center font-black text-slate-900">{quantity}</span>
+                                    <button onClick={() => setQuantity(quantity + 1)} className="w-12 h-12 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"><Plus className="w-4 h-4" /></button>
                                 </div>
-                                <div className="flex items-center space-x-3 hover:translate-x-2 transition-transform duration-200">
-                                    <span className="text-primary text-xl animate-bounce stagger-1">✓</span>
-                                    <p>30-day return policy</p>
+                                <button
+                                    onClick={handleAddToCart}
+                                    className="flex-1 h-16 bg-dark text-white rounded-2xl flex items-center justify-center gap-4 font-black uppercase tracking-widest text-sm hover:glow-gold hover:-translate-y-1 transition-all"
+                                >
+                                    <ShoppingBag className="w-5 h-5" /> Add to Boutique Cart
+                                </button>
+                            </div>
+
+                            {/* Features */}
+                            <div className="mt-16 pt-16 border-t border-slate-100 grid grid-cols-2 gap-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center"><Shield className="w-5 h-5 text-primary" /></div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Lifetime Warranty</span>
                                 </div>
-                                <div className="flex items-center space-x-3 hover:translate-x-2 transition-transform duration-200">
-                                    <span className="text-primary text-xl animate-bounce stagger-2">✓</span>
-                                    <p>Authenticity guaranteed</p>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center"><Gift className="w-5 h-5 text-primary" /></div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Premium Packaging</span>
                                 </div>
-                            </motion.div>
+                            </div>
                         </div>
                     </div>
                 </div>

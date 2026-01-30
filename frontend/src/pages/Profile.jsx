@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Shield, LogOut, ShoppingBag, ArrowRight, UserPlus } from 'lucide-react';
+import api from '../services/api';
 
 export default function Profile() {
     const { user, logout } = useAuth();
@@ -82,8 +83,8 @@ export default function Profile() {
                                                         <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()}</p>
                                                     </div>
                                                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' :
-                                                            order.status === 'Cancelled' ? 'bg-red-100 text-red-600' :
-                                                                'bg-primary/20 text-primary'
+                                                        order.status === 'Cancelled' ? 'bg-red-100 text-red-600' :
+                                                            'bg-primary/20 text-primary'
                                                         }`}>
                                                         {order.status}
                                                     </span>
